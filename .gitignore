@@ -1,0 +1,3 @@
+Catalogues/*.fits
+real_testing_data/QPE/*.FTZ
+.spyproject/*.ini
