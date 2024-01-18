@@ -1,4 +1,4 @@
-#**X**MM **M**achine learning-led **L**ightcurve **Pro**filiing (**XMLPro**)
+# **X**MM **M**achine learning-led **L**ightcurve **Pro**filiing (**XMLPro**)
 
 This package is designed to provide profiling for lightcurves as detected by XMM-Newton (and in the future other missions as well) by means of supervised machine learning-led approaches. The classes of phenomena which will be identified are:
 
