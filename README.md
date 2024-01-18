@@ -9,6 +9,7 @@ This package is designed to provide profiling for lightcurves as detected by XMM
 - Eclipsing Binaries
 - Isolated Flares (can be indicator of YSO, red dwarf, XRB or high-proper motion star)
 - Gamma Ray Burst
+- Type-1 X-ray Burst
 - Poissonian noise dominated
 
 The aim will be to provide users of the XMM Serendipitous Source Catalogues with likely phenomenological labels for detections, should one be appropriate, to go alongside object classifications (AGN, galaxy, star etc.) in order to assist in providing targeted information for users searching for particular phenomena. 
