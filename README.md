@@ -12,7 +12,7 @@ This package is designed to provide profiling for lightcurves as detected by XMM
 - Type-1 X-ray Burst
 - Poissonian noise dominated
 
-The aim will be to provide users of the XMM Serendipitous Source Catalogues with likely phenomenological labels for detections, should one be appropriate, to go alongside object classifications (AGN, galaxy, star etc.) in order to assist in providing targeted information for users searching for particular phenomena. 
+The aim will be to provide users of the XMM Serendipitous Source Catalogues with likely phenomenological labels for detections, should one be appropriate, to go alongside object classifications (AGN, galaxy, star etc.) in order to assist in providing targeted information for users searching for particular phenomena. Alongside these classifications, clustering will allow for outlier detection and thus, hopefully, the detection of further, new, transient phenomena.
 
 
 Methodology
