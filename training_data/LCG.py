@@ -35,31 +35,33 @@ def TKLC(T,dt,beta,break_freq=None,beta2=False,floor_freq=None,plot=False):
     #populate the psd with randomly determined complex values
     power.real = np.random.randn(len(power))
     power.imag = np.random.randn(len(power))
-    
-    #set the zero frequency bin to power 0
-    power[0] = 0+0j
-    
+        
     #if an even number of data points then set the power at the nyquist frequency to be real
     if len(times) % 2 == 0:
         power.imag[-1] = 0
         
-    #multiply the psd by the power law with index beta
-    power[1:] *= freqs[1:]**(-0.5*beta)
+    #determine the underlying power law
+    true_psd = np.zeros(len(freqs))
+    true_psd[1:] = freqs[1:]**(-0.5*beta)
 
     #if there is to be a break in the power law at a given frequency
     if break_freq != None:
         #find the frequencies at which to alter the power for the different index
         break_indices = np.where(freqs >= break_freq)[0]
         #implement the new power las above that break frequency
-        power[break_indices] *= ((1/break_freq)*freqs[break_indices])**(-0.5*(beta2-beta))
+        true_psd[break_indices] *= ((1/break_freq)*freqs[break_indices])**(-0.5*(beta2-beta))
     
     #if there is to be a flat floor to the PSD at a given frequency
     if floor_freq != None:
-        #find the frequencies at which to implement a floor
-        floor_indices = np.where(freqs >= floor_freq)[0]
-        #multiply those frequencies such that a floor is reached at that level
-        power[floor_indices] *= (floor_freq**(-0.5*beta2))*freqs[floor_indices]**(0.5*beta2)
+        #if there is a floor, identify the appropriate constant to add to the power law
+        true_psd += floor_freq**(-0.5*beta)
         
+    #now multiply the true psd by the normally distributed random values as previously generated
+    power *= true_psd
+    
+    #set the zero frequency bin to power 0
+    power[0] = 0+0j
+    
     rate = np.fft.irfft(power,len(times))
     
     if plot:
