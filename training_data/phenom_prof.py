@@ -58,7 +58,7 @@ def QPOProfile(length,amplitude,duration):
     Function for the production of QPO profiles for simulated lightcurves.
     
     Parameters
-    length - Length of QPE profile, in 250s time bins
+    length - Length of QPO profile, in 50s time bins
     amplitude - The relative magnitude of the eruptions comparative to their baselines.
     width - The FWHM of the eruptions
     dutycycle - The fraction of the time between successive eruptions as compared with the eruption duration.
