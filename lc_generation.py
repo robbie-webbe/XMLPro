@@ -49,8 +49,8 @@ if phenom_name not in ['QPE','QPO','IF','CV','PON']:
     sys.exit()
 
 #define the number of lightcurves to be simulated
-#no_lcs = 10000
-no_lcs=10
+no_lcs = 10000
+#no_lcs=10
    
 #generate lightcurves matching the length, time binning and features required for the phenomenon of interest
 if phenom_name == 'QPE':
@@ -80,7 +80,7 @@ if phenom_name == 'QPE':
         hard_fluxes = np.zeros((no_lcs,481))
         for i in range(no_lcs):
             #simulate the base Emman. lc
-            soft_base = ELC_model(120000,250,pl_soft[i],'lognorm',PDF_args={'s':s_vals[i],'loc':mean_vals[i],'scale':scale_vals[i]})
+            soft_base = ELC_model(120000,250,pl_soft[i],'lognorm',PDF_args={'s':s_vals[i],'loc':mean_vals[i],'scale':0.5*scale_vals[i]})
             hard_time, hard_base = ELC_model(120000,250,pl_hard[i],'lognorm',PDF_args={'s':np.random.uniform()*s_vals[i],'loc':np.random.uniform()*mean_vals[i],'scale':np.random.uniform()*scale_vals[i]})
             eruptions_profile = QPEProfile(length=481,amplitude=amps[i],width=durs[i],dutycycle=DCs[i])
             #convolve the eruptions with the baseline to create the QPE lightcurve
@@ -187,7 +187,6 @@ if phenom_name == 'QPO':
             QPO_amp_soft = soft_rms_frac * QPO_var[i]
             QPO_amp_hard = hard_rms_frac * QPO_var[i]
             
-            print(QPO_period[i],QPO_phase[i])
             #generate the QPO signals in the two bands
             QPO_signal_soft = 1 + QPO_amp_soft * np.sin(2*np.pi*((times/QPO_period[i])-QPO_phase[i]))
             QPO_signal_hard = 1 + QPO_amp_hard * np.sin(2*np.pi*((times/QPO_period[i])-(QPO_phase[i]+np.random.uniform(-0.1,0.1))))
