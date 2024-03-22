@@ -256,7 +256,126 @@ if phenom_name == 'QPO':
         softfile_location = 'QPO/nPO_sim_lcsoft_dt100.csv'
         hardfile_location = 'QPO/nPO_sim_lchard_dt100.csv'
         fullfile_location = 'QPO/nPO_sim_lcfull_dt100.csv'
-        
+
+if phenom_name == 'IF':
+    if phenom_present == '1':
+
+        # if an isolated flare is present, start with a low-level mildly variable baseline just above poisson noise levels, or higher.
+        # for IFs, in order to accomodate transient events, time binning of 10s is acceptable, and durations of 120ks (although they
+        # may be truncated during feature extraction)
+        times = np.arange(0, 12001 * 10, 10, dtype=float)
+
+        # draw a variety of different values for the underlying TK95 power law. Given the wide variety of possible hosts
+        # these can take a broad variety of values.
+        pl_index = np.abs(np.random.normal(0,2,size=no_lcs))
+
+        # simulate a variety of values of the poissonian distribution underlying the random source lightcurves
+        s_vals = np.random.uniform(0.05, 0.5, size=no_lcs)
+        mean_vals = np.random.uniform(0.0, 0.5, size=no_lcs)
+        scale_vals = np.random.uniform(0.0001, 0.5, size=no_lcs)
+
+        # determine the QPO fractional variability, and timescales
+        QPO_period = np.random.uniform(3600, 86400, size=no_lcs)
+        QPO_var = np.random.uniform(0.05, 0.50, size=no_lcs)
+        QPO_phase = np.random.uniform(0, 2 * np.pi, size=no_lcs)
+
+        # simulate a series of Emmanoulopoulos lightcurves
+        soft_fluxes = np.zeros((no_lcs, 1201))
+        hard_fluxes = np.zeros((no_lcs, 1201))
+        for i in range(no_lcs):
+            # simulate the base Emman. lc
+            soft_time, soft_base = ELC_model(120000, 100, pl_soft[i], 'lognorm',
+                                             PDF_args={'s': s_vals[i], 'loc': mean_vals[i], 'scale': scale_vals[i]})
+            hard_time, hard_base = ELC_model(120000, 100, pl_hard[i], 'lognorm',
+                                             PDF_args={'s': s_vals[i], 'loc': mean_vals[i], 'scale': scale_vals[i]})
+
+            # find the rms variability as a fraction of the average flux
+            soft_rms_frac = np.std(soft_base) / np.average(soft_base)
+            hard_rms_frac = np.std(hard_base) / np.average(hard_base)
+
+            # determine the QPO RMS as a fraction of the total RMS
+            QPO_amp_soft = soft_rms_frac * QPO_var[i]
+            QPO_amp_hard = hard_rms_frac * QPO_var[i]
+
+            # generate the QPO signals in the two bands
+            QPO_signal_soft = 1 + QPO_amp_soft * np.sin(2 * np.pi * ((times / QPO_period[i]) - QPO_phase[i]))
+            QPO_signal_hard = 1 + QPO_amp_hard * np.sin(
+                2 * np.pi * ((times / QPO_period[i]) - (QPO_phase[i] + np.random.uniform(-0.1, 0.1))))
+
+            # convolve the oscillation with the baselines to create the QPO lightcurves
+            qpo_soft = soft_base * QPO_signal_soft
+            qpo_hard = hard_base * QPO_signal_hard
+            # convert from rate to counts, with a possible factor to make the lightcurves appear fainter,
+            # due to distance, extinction or other observational effects.
+            dim_factor = np.random.uniform(0.1, 1)
+            qpo_soft *= (100 * dim_factor)
+            qpo_hard *= (100 * dim_factor)
+            # add poissonian noise to the result
+            for k in range(len(qpo_soft)):
+                qpo_soft[k] = poisson.rvs(mu=qpo_soft[k])
+                qpo_hard[k] = poisson.rvs(mu=qpo_hard[k])
+            # and revert to count rates
+            qpo_soft /= 100
+            qpo_hard /= 100
+
+            # add to the output array
+            soft_fluxes[i, :] = qpo_soft
+            hard_fluxes[i, :] = qpo_hard
+
+        softfile_location = 'QPO/QPO_sim_lcsoft_dt100.csv'
+        hardfile_location = 'QPO/QPO_sim_lchard_dt100.csv'
+        fullfile_location = 'QPO/QPO_sim_lcfull_dt100.csv'
+
+    elif phenom_present == '0':
+        # if eruptions are present, start with an AGN baseline
+        # for QPEs time binning of 250s is acceptable, and durations of 120ks (although they may be truncated during feature extraction)
+        times = np.arange(0, 1201 * 100, 100, dtype=float)
+
+        # draw a variety of different values for the underlying TK95 power law. These values are following the
+        # distribution identified by Gonzalez-Martin
+        pl_soft = 2.06 + 0.01 * np.random.randn(no_lcs)
+        pl_hard = 1.77 + 0.01 * np.random.randn(no_lcs)
+
+        # simulate a variety of values of the lognormal distribution underlying the AGN lightcurves
+        s_vals = np.random.uniform(0.01, 0.5, size=no_lcs)
+        mean_vals = np.random.uniform(0.0, 0.5, size=no_lcs)
+        scale_vals = np.random.uniform(0.0001, 0.5, size=no_lcs)
+
+        # simulate a series of Emmanoulopoulos lightcurves
+        soft_fluxes = np.zeros((no_lcs, 1201))
+        hard_fluxes = np.zeros((no_lcs, 1201))
+        for i in range(no_lcs):
+            # simulate the base Emman. lc
+            soft_time, soft_base = ELC_model(120000, 100, pl_soft[i], 'lognorm',
+                                             PDF_args={'s': s_vals[i], 'loc': mean_vals[i], 'scale': scale_vals[i]})
+            hard_time, hard_base = ELC_model(120000, 100, pl_hard[i], 'lognorm', PDF_args={'s': s_vals[i],
+                                                                                           'loc': 10 ** (
+                                                                                               np.random.uniform(-1,
+                                                                                                                 1)) *
+                                                                                                  mean_vals[i],
+                                                                                           'scale': 10 ** (
+                                                                                               np.random.uniform(-1,
+                                                                                                                 1)) *
+                                                                                                    scale_vals[i]})
+            # convert from rate to counts, with dimming factor
+            dim_factor = np.random.uniform(0.1, 1)
+            soft_base *= (100 * dim_factor)
+            hard_base *= (100 * dim_factor)
+            # add poissonian noise to the result
+            for k in range(len(soft_base)):
+                soft_base[k] = poisson.rvs(mu=soft_base[k])
+                hard_base[k] = poisson.rvs(mu=hard_base[k])
+            # and revert to count rates
+            soft_base /= 100
+            hard_base /= 100
+
+            # add to the output array
+            soft_fluxes[i, :] = soft_base
+            hard_fluxes[i, :] = hard_base
+
+        softfile_location = 'QPO/nPO_sim_lcsoft_dt100.csv'
+        hardfile_location = 'QPO/nPO_sim_lchard_dt100.csv'
+        fullfile_location = 'QPO/nPO_sim_lcfull_dt100.csv'
         
 
 #create the output file location and output array

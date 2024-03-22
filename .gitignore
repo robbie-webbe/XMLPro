@@ -4,4 +4,5 @@ real_testing_data/QPE/*.FTZ
 training_data/*/*dt*.csv
 
 .spyproject/*.ini
-
+.idea/*.xml
+.idea/*.xml
