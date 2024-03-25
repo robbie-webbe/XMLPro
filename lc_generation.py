@@ -14,8 +14,7 @@ plt.rcParams["figure.figsize"] = (15,10)
 sys.path.append(os.getcwd()+'/training_data/')
 
 from scipy.stats import poisson, exponnorm
-from LCG import ELC_model
-from phenom_prof import QPEProfile#, QPOProfile
+from LCG import ELC_model, QPEProfile
 
 '''
 Script to enable the running of Emmanoulopoulos 2013 script for the generation of lightcurves. For each class of
@@ -400,3 +399,4 @@ for i in range(10):
     plt.plot(hard_array[0],hard_array[i+1],color='b')
     plt.plot(full_array[0],full_array[i+1],color='k')
     plt.show()
+

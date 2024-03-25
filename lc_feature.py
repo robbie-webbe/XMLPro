@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
 import numpy as np
 import scipy.stats as stat
 from scipy.signal import lombscargle
 from itertools import groupby
 from astropy.stats import bayesian_blocks
-# from astropy.modeling import models, fitting
+from tqdm import tqdm
 
 
 '''
@@ -236,3 +237,11 @@ def lc_feats(times, time_series, dt):
     features[41] = np.average(interval_values) - features[40]/2
 
     return features
+
+infile = string(sys.argv[1])
+dt = float(sys.argv[2])
+data = np.loadtxt(infile, delimiter=',')
+feature_array = np.zeros((len(data)-1,42))
+for i in tqdm(range(len(data)-1)):
+    feature_array[i] = lc_feats(data[0],data[i+1],dt)
+np.savetxt(infile[:-4]+'_feats.csv',feature_array,delimiter=',')
