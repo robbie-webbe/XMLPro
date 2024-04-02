@@ -21,8 +21,8 @@ Features:
  - Proportion of points above mean + (1/2/3/4/5)*std
  - Proportion of points within +/- 1/2/3/4/5 std of the mean
  - IQR / standard deviation
- - Range / standard deviation
- - Range / IQR
+ - standard deviation / Range
+ - IQR / Range
  - Proportional position of the LQ, median, and UQ within the range
  - (LQ/Median/UQ - mean) / std 
  - Maximum absolute difference in consecutive points / std
@@ -67,6 +67,11 @@ def lc_feats(times, time_series, dt):
     median = np.median(time_series)
     std = np.std(time_series)
     iqr = stat.iqr(time_series)
+    low = np.min(time_series)
+    rng = np.max(time_series) - low
+    lq = np.quantile(time_series, 0.25)
+    uq = np.quantile(time_series, 0.75)
+
 
     # create a time series which is normalised by the mean and standard deviation
     norm_ts = (time_series - mean) / std
@@ -74,7 +79,6 @@ def lc_feats(times, time_series, dt):
     # create the first ten features related to proportions of points -5 -> +5 std above the mean
     for i in range(5):
         features[i] = len(np.where(norm_ts >= (i-5))[0]) / N
-    for i in range(5):
         features[i+5] = len(np.where(norm_ts >= (i+1))[0]) / N
 
     # create features related to proportions of points with n stds of the mean.
@@ -83,38 +87,38 @@ def lc_feats(times, time_series, dt):
 
     # determine values of features related to IQR and quartiles normalised by the std
     features[15] = iqr / std
-    rng = max(time_series) - min(time_series)
-    features[16] = rng / std
-    features[17] = rng / iqr
+    features[16] = std / rng
+    features[17] = iqr / rng
 
     # determine features related to the positions of the median and quartiles within the range
-    features[18] = (np.percentile(time_series, 25) - min(time_series)) / rng
-    features[19] = (median - min(time_series)) / rng
-    features[20] = (np.percentile(time_series, 75) - min(time_series)) / rng
+    features[18] = (lq - low) / rng
+    features[19] = (median - low) / rng
+    features[20] = (uq - low) / rng
 
     # determine features related to the difference between mean and quartiles as per the std
-    features[21] = (np.percentile(time_series, 25) - mean) / std
+    features[21] = (lq - mean) / std
     features[22] = (median - mean) / std
-    features[23] = (np.percentile(time_series, 75) - mean) / std
+    features[23] = (uq - mean) / std
 
     # determine the differences between consecutive points, and thence the maximum difference
-    features[24] = max(np.abs(norm_ts[1:] - norm_ts[:-1]))
+    deviations = norm_ts[1:] - norm_ts[:-1]
+    features[24] = np.max(np.abs(deviations))
 
     # calculate the kurtosis and skew of the lightcurve
     features[25] = stat.skew(time_series)
     features[26] = stat.kurtosis(time_series)
 
     # calculate the RoMS as per Sokolovsky and MAD
-    features[27] = (1/(N-1))*sum(np.abs((time_series-median)/std))
+    features[27] = (1/(N-1))*np.sum(np.abs((time_series-median)/std))
     features[28] = stat.median_abs_deviation(norm_ts)
 
     # determine the reverse cross correlation and auto correlation-based features
     max_time = times[-1]
     rev_times = np.flip(max_time - times)
     rev_norm_ts = np.flip(norm_ts)
-    for i in range(len(times)):
+    for i in range(N):
         if times[i] in rev_times:
-            features[29] += norm_ts[i]*rev_norm_ts[np.where(rev_times == times[i])[0]]
+            features[29] += norm_ts[i]*rev_norm_ts[np.searchsorted(rev_times, times[i])]
 
     # determine the maximum lag that can be seen in the lightcurve
     max_lag = times[-1] - times[0]
@@ -126,39 +130,38 @@ def lc_feats(times, time_series, dt):
     for i in range(len(lag_vals)):
         # for each time value, check if the corresponding lagged time exists, and
         # compute the ac if so
-        for j in range(len(times)):
+        for j in range(N):
             lag_time = times[j] + lag_vals[i]
             if lag_time in times:
-                ac_vals[i] += norm_ts[j] * norm_ts[np.where(times == lag_time)]
+                ac_vals[i] += norm_ts[j] * norm_ts[np.searchsorted(times, lag_time)]
                 ac_pairs[i] += 1
     # make a nominal adjustment to the autocorrelation for the uneven sampling
     # leading to uneven numbers of pairs contributing to the autocorrelation
     ac = (ac_vals[1:]/ac_vals[0]) * np.flip(np.arange(1, len(lag_vals)))/ac_pairs[1:]
     ac_first0_idx = np.where(ac <= 0)[0][0]
-    features[30] = max(ac[ac_first0_idx:])
+    features[30] = np.max(ac[ac_first0_idx:])
 
     # determine the features dependent on consecutive sets of points, n can be
     # adjusted later if desired
     css_n = 3
-    for i in range(len(norm_ts)-(css_n-1)):
-        if all(norm_ts[i:i+css_n] >= 0) or all(norm_ts[i:i+css_n] <= 0):
+    for i in range(N+1-css_n):
+        if (norm_ts[i] >=0 and norm_ts[i+1] >=0 and norm_ts[i+2] >=0) or (norm_ts[i] <=0 and norm_ts[i+1] <=0 and norm_ts[i+2] <= 0):
             features[31] += 1
-    features[31] /= (len(norm_ts)-(css_n-1))
-    deviations = norm_ts[1:] - norm_ts[:-1]
-    for i in range(len(deviations)-(css_n-1)):
-        if all(deviations[i:i+css_n] >= 0) or all(deviations[i:i+css_n] <= 0):
+    features[31] /= (N+1-css_n)
+    for i in range(N-css_n):
+        if (norm_ts[i] <= norm_ts[i+1] <= norm_ts[i+2] <= norm_ts[i+3]) or (norm_ts[i] >= norm_ts[i+1] >= norm_ts[i+2] >= norm_ts[i+3]):
             features[32] += 1
     features[32] /= len(deviations)-(css_n-1)
 
     # create an output frequency range for the LS periodogram
-    df = 1 / (10 * times[-1])
+    df = 1 / (5 * times[-1])
     ls_freqs = np.arange(start=df, stop=(10/times[1] + df), step=df)
     lsp = lombscargle(times, time_series, ls_freqs, normalize=True)
-    features[33] = max(lsp)
+    features[33] = np.max(lsp)
 
     # determine the reduced chi squared against a constant value and excess variance
-    features[34] = sum(norm_ts**2) / (N-1)
-    features[35] = (1/(N*mean)) * sum((time_series-mean)**2-std**2)
+    features[34] = np.sum(norm_ts**2) / (N-1)
+    features[35] = (1/(N*mean)) * np.sum((time_series-mean)**2-std**2)
 
     # create bayesian block bin edges for the time series
     bb = bayesian_blocks(times,time_series,fitness='measures')
@@ -204,7 +207,7 @@ def lc_feats(times, time_series, dt):
     # for each flare section, if they have at least three points above mean + 2*std, record the max
     for i in range(len(flare_block_counts)):
         if len(np.where(flare_block_counts[i] > 2)[0]) >= 3:
-            features[37] = max(features[37],max(flare_block_counts[i]))
+            features[37] = max(features[37],np.max(flare_block_counts[i]))
 
     # determine the Anderson-Darling probability
     features[38] = stat.anderson(time_series).statistic
@@ -216,32 +219,27 @@ def lc_feats(times, time_series, dt):
     # then calculate the metric based on the values and uncertainties
     residual_sums = []
     for i in range(len(sets)):
-        residual_sums.append((sum(sets[i])/std)**2)
-    features[39] = (1 / (N*len(residual_sums))) * sum(residual_sums)
+        residual_sums.append((np.sum(sets[i])/std)**2)
+    features[39] = (1 / (N*len(residual_sums))) * np.sum(residual_sums)
 
     # calculate the von Neumann ratio
-    features[40] = (sum(deviations**2)/(N-1)) / std**2
+    features[40] = (np.sum(deviations**2)/(N-1)) / std**2
 
     # define a time interval for calculating the Excess Abbe values. We choose 10*dt as an intermediate value dependent
     # on the original binning. Then iterate over all time series segments to calculate Abbe values for the intervals.
     interval_values = []
-    for i in range(len(times)):
+    for i in range(N):
         interval_start = times[i]
         interval_end = interval_start + 10 * dt
         if interval_end > times[-1]:
             continue
         interval_ts = time_series[np.where((times >= interval_start) & (times <= interval_end))[0]]
         interval_mean = np.average(interval_ts)
-        interval_values.append((sum((interval_ts[1:] - interval_ts[:-1])**2)) / (sum((interval_ts - interval_mean)**2)))
+        interval_total_var = np.sum((interval_ts - interval_mean)**2)
+        if interval_total_var == 0:
+            continue
+        interval_values.append((np.sum((interval_ts[1:] - interval_ts[:-1])**2)) / interval_total_var)
     # calculate the average value, and therefore the excess Abbe
     features[41] = np.average(interval_values) - features[40]/2
 
     return features
-
-infile = string(sys.argv[1])
-dt = float(sys.argv[2])
-data = np.loadtxt(infile, delimiter=',')
-feature_array = np.zeros((len(data)-1,42))
-for i in tqdm(range(len(data)-1)):
-    feature_array[i] = lc_feats(data[0],data[i+1],dt)
-np.savetxt(infile[:-4]+'_feats.csv',feature_array,delimiter=',')
