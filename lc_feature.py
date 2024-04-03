@@ -46,7 +46,7 @@ Features:
 
 '''
 
-def lc_feats(times, time_series, dt):
+def simlc_feats(times, time_series, dt):
     """
     Function for the creation of the above feature set for a given time series data set.
     Args:
