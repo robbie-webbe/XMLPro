@@ -1,5 +1,8 @@
 Catalogues/*.fits
-real_testing_data/QPE/*.FTZ
+real_testing_data/*/*.FTZ
+real_testing_data/*/no_phenom/*.FTZ
+
+
 
 training_data/*/*dt*.csv
 feature_extraction/*_feats.csv
